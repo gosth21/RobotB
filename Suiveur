@@ -1,0 +1,149 @@
+
+#include <LibRobus.h>
+#include <qtrSensors.h>
+#include <ADJDS311.h>
+#include <math.h>
+
+
+#define  NUM_SENSORS 8
+#define TIMEOUT 2500
+#define NUM_SAMPLES_PER_SENSOR  4  // average 4 analog samples per sensor reading
+#define EMITTER_PIN 2
+
+
+
+int lastError=0;
+    #define Kp 0.05 // experiment to determine this, start by something small that just makes your bot follow the line at a slow speed
+    #define Kd 2 // experiment to determine this, slowly increase the speeds and adjust this value. ( Note: Kp < Kd) 
+  int rightMaxSpeed = 200; // max speed of the robot
+    int leftMaxSpeed = 200; // max speed of the robot
+    int rightBaseSpeed = 150; // this is the speed at which the motors should spin when the robot is perfectly on the line
+    int leftBaseSpeed = 150;  
+
+
+  void suivreLigne(unsigned int position){
+   
+ 
+    
+  int error = position-3500;//3500 car 1000*(8-1)/2
+  int motorSpeed = Kp * error + Kd * (error - lastError);
+    lastError = error;
+
+    int rightMotorSpeed = rightBaseSpeed + motorSpeed;
+    int leftMotorSpeed = leftBaseSpeed - motorSpeed;
+  
+      if (rightMotorSpeed > rightMaxSpeed ) rightMotorSpeed = rightMaxSpeed; // prevent the motor from going beyond max speed
+      if (leftMotorSpeed > leftMaxSpeed ) leftMotorSpeed = leftMaxSpeed; // prevent the motor from going beyond max speed
+      if (rightMotorSpeed < 0) rightMotorSpeed = 0; // keep the motor speed positive
+      if (leftMotorSpeed < 0) leftMotorSpeed = 0; // keep the motor speed positive
+
+    float realRigth=rightMotorSpeed/rightMaxSpeed;
+    float realLeft=leftMotorSpeed/leftMaxSpeed;
+    
+    Serial.println(realRigth);
+    Serial.println(realLeft);
+
+    MOTOR_SetSpeed(0,realLeft/2);
+    MOTOR_SetSpeed(1,realRigth/2);
+
+    lastError=error;
+  }
+
+
+
+  QTRSensorsAnalog qtra((unsigned char[]) {3, 4,5, 6, 7, 8,9,10},
+  NUM_SENSORS, NUM_SAMPLES_PER_SENSOR, EMITTER_PIN);
+
+  unsigned int sensorValues[NUM_SENSORS];
+
+
+//COLOR SENSOR ISHHH
+//uint8_t ledpin = 52;
+//ADJDS311 color(ledpin);
+//COLOR SENSOR ISHHH
+
+void setup(){
+
+  BoardInit();
+
+
+  
+    //COLOR SENSOR ISHH
+    //Serial.println("test");
+      //color.init();
+      //color.ledOn();
+     // color.calibrate();  // first make sure the sensor faces a white surface at the focal point
+   // Serial.println("test2");
+    //COLOR SENSOR ISSHH
+
+
+   for(int i=0;i< 200;i++){
+     qtra.calibrate();
+   }
+
+   //////////////////////////////////////////
+    // print the calibration minimum values measured when emitters were on
+  Serial.begin(9600);
+  for (int i = 0; i < NUM_SENSORS; i++)
+  {
+    Serial.print(qtra.calibratedMinimumOn[i]);
+    Serial.print(' ');
+  }
+  Serial.println();
+
+  // print the calibration maximum values measured when emitters were on
+  for (int i = 0; i < NUM_SENSORS; i++)
+  {
+    Serial.print(qtra.calibratedMaximumOn[i]);
+    Serial.print(' ');
+  }
+  Serial.println();
+  Serial.println();
+  
+  delay(1000);
+
+Serial.begin(9600);
+delay(500);
+}
+
+
+
+
+void loop() {
+  /*
+  //Distance
+  Serial.println("3");
+  Serial.println(ROBUS_ReadIR(3));
+  
+  double distance = pow(ROBUS_ReadIR(3),-1.078867);
+  Serial.println(distance);
+  distance= distance*2141.72055;
+  Serial.println(distance);
+  //Distance  
+  */
+
+ 
+
+
+//COLOR
+  //    Serial.println("test3");
+  //    Serial.println(color.readRed());
+  //    Serial.println(color.readGreen());
+  //    Serial.println(color.readBlue());
+  //    Serial.println(color.readClear());
+
+//COLOR
+
+unsigned int position = qtra.readLine(sensorValues);
+  for (unsigned int i = 0; i < NUM_SENSORS; i++)
+  {
+    Serial.print(sensorValues[i]);
+    Serial.print('\t');
+  } 
+  Serial.println(position);
+  suivreLigne(position);
+  
+  delay(1000);
+  
+ 
+  }
